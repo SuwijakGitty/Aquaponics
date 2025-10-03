@@ -7,69 +7,92 @@
 // import "./App.css";
 
 // function App() {
-//   const [fishData, setFishData] = useState({});
-//   const [middleData, setMiddleData] = useState({});
-//   const [plantData, setPlantData] = useState({});
+//   const [fishTank, setFishTank] = useState({});
+//   const [middleTank, setMiddleTank] = useState({});
+//   const [plantTank, setPlantTank] = useState({});
 //   const [timestamp, setTimestamp] = useState("");
 
 //   useEffect(() => {
-//     const uid = "UsersData"; // root ที่เรามีจริง
-//     const fishRef = ref(database, `${uid}/FishTank`);
-//     const middleRef = ref(database, `${uid}/MiddleTank`);
-//     const plantRef = ref(database, `${uid}/PlantTank`);
+//     const uid = "UsersData"; // path root
 
-//     // Fish Tank
+//     // FishTank
+//     const fishRef = ref(database, `${uid}/FishTank`);
 //     onValue(fishRef, (snapshot) => {
 //       const data = snapshot.val();
 //       if (data) {
-//         setFishData(data);
+//         setFishTank(data);
 //         setTimestamp(data.timestamp || "");
 //       }
 //     });
 
-//     // Middle Tank
-//     onValue(middleRef, (snapshot) => {
+//     // MiddleTank
+//     const midRef = ref(database, `${uid}/MiddleTank`);
+//     onValue(midRef, (snapshot) => {
 //       const data = snapshot.val();
-//       if (data) setMiddleData(data);
+//       if (data) {
+//         setMiddleTank(data);
+//       }
 //     });
 
-//     // Plant Tank
+//     // PlantTank
+//     const plantRef = ref(database, `${uid}/PlantTank`);
 //     onValue(plantRef, (snapshot) => {
 //       const data = snapshot.val();
-//       if (data) setPlantData(data);
+//       if (data) {
+//         setPlantTank(data);
+//       }
 //     });
 //   }, []);
 
 //   return (
 //     <div className="app-container">
 //       <div className="header">
-//         <h1 className="title">Aquaponic Test 01</h1>
-//         <p className="timestamp">{timestamp}</p>
+//         <h1 className="title">Aquaponic System Monitor</h1>
+//         <p className="timestamp">อัปเดตล่าสุด: {timestamp || "--"}</p>
 //       </div>
 
 //       <div className="dashboard">
 //         {/* Fish Tank */}
 //         <div className="card fish">
 //           <h2>Fish Tank</h2>
-//           <div className="image fish-img" />
-//           <div className="data-row"><span>pH</span><span>{fishData.ph ?? "--"}</span></div>
-//           <div className="data-row"><span>Water Level</span><span>{fishData.waterLevel ?? "--"} mL</span></div>
-//           <div className="data-row"><span>Turbidity</span><span>{fishData.turbidity ?? "--"} %</span></div>
+//           <div className="data-row">
+//             <span>Water Level</span>
+//             <span className="value">
+//               {fishTank.waterLevel_cm !== undefined
+//                 ? `${fishTank.waterLevel_cm} cm`
+//                 : "-- cm"}
+//             </span>
+//           </div>
+//           <div className="data-row">
+//             <span>Volume</span>
+//             <span className="value">
+//               {fishTank.volume_L !== undefined
+//                 ? `${fishTank.volume_L.toFixed(2)} L`
+//                 : "-- L"}
+//             </span>
+//           </div>
 //         </div>
 
 //         {/* Middle Tank */}
 //         <div className="card middle">
 //           <h2>Middle Tank</h2>
-//           <div className="image middle-img" />
-//           <div className="data-row"><span>Water Level</span><span>{middleData.waterLevel ?? "--"} mL</span></div>
+//           <div className="data-row">
+//             <span>Water Level</span>
+//             <span className="value">
+//               {middleTank.waterLevel || "รอ Sensor"}
+//             </span>
+//           </div>
 //         </div>
 
 //         {/* Plant Tank */}
 //         <div className="card plant">
 //           <h2>Plant Tank</h2>
-//           <div className="image plant-img" />
-//           <div className="data-row"><span>pH</span><span>{plantData.ph ?? "--"}</span></div>
-//           <div className="data-row"><span>Water Level</span><span>{plantData.waterLevel ?? "--"} mL</span></div>
+//           <div className="data-row">
+//             <span>Water Level</span>
+//             <span className="value">
+//               {plantTank.waterLevel || "รอ Sensor"}
+//             </span>
+//           </div>
 //         </div>
 //       </div>
 //     </div>
@@ -78,90 +101,115 @@
 
 // export default App;
 
-
-
-
-
-
 import React, { useEffect, useState } from "react";
 import { database, ref, onValue } from "./firebaseConfig";
 import "./App.css";
 
 function App() {
-  const [data, setData] = useState({
-    FishTank: {},
-    PlantTank: {},
-    MiddleTank: {}
-  });
-  const [timestamp, setTimestamp] = useState("");
-  const [activeTab, setActiveTab] = useState("fish");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTank, setActiveTank] = useState("FishTank");
+  const [fishTank, setFishTank] = useState({});
+  const [plantTank, setPlantTank] = useState({});
+  const [middleTank, setMiddleTank] = useState({});
 
   useEffect(() => {
-    // FishTank
-    const fishRef = ref(database, "UsersData/FishTank");
-    const unsubFish = onValue(fishRef, (snapshot) => {
-      const val = snapshot.val();
-      setData((prev) => ({ ...prev, FishTank: val || {} }));
+    const uid = "UsersData"; // root ของ Firebase
 
-      if (val?.timestamp) {
-        setTimestamp(val.timestamp);
-      }
+    // FishTank
+    const fishRef = ref(database, `${uid}/FishTank`);
+    onValue(fishRef, (snap) => {
+      if (snap.exists()) setFishTank(snap.val());
     });
 
     // PlantTank
-    const plantRef = ref(database, "UsersData/PlantTank");
-    const unsubPlant = onValue(plantRef, (snapshot) => {
-      const val = snapshot.val();
-      setData((prev) => ({ ...prev, PlantTank: val || {} }));
+    const plantRef = ref(database, `${uid}/PlantTank`);
+    onValue(plantRef, (snap) => {
+      if (snap.exists()) setPlantTank(snap.val());
     });
 
     // MiddleTank
-    const middleRef = ref(database, "UsersData/MiddleTank");
-    const unsubMiddle = onValue(middleRef, (snapshot) => {
-      const val = snapshot.val();
-      setData((prev) => ({ ...prev, MiddleTank: val || {} }));
+    const middleRef = ref(database, `${uid}/MiddleTank`);
+    onValue(middleRef, (snap) => {
+      if (snap.exists()) setMiddleTank(snap.val());
     });
-
-    return () => {
-      unsubFish();
-      unsubPlant();
-      unsubMiddle();
-    };
   }, []);
+
+  const renderTank = () => {
+    let data, title, imageClass;
+
+    if (activeTank === "FishTank") {
+      data = fishTank;
+      title = "Fish Tank";
+      imageClass = "fish-img";
+    } else if (activeTank === "PlantTank") {
+      data = plantTank;
+      title = "Plant Tank";
+      imageClass = "plant-img";
+    } else {
+      data = middleTank;
+      title = "Middle Tank";
+      imageClass = "middle-img";
+    }
+
+    return (
+      <div className="card">
+        <h2>{title}</h2>
+        <div className={`image ${imageClass}`} />
+
+        <div className="data-row">
+          <span>Water Level</span>
+          <span className="value">
+            {data.waterLevel_cm !== undefined ? `${data.waterLevel_cm} cm` : "รอ Sensor"}
+          </span>
+        </div>
+
+        <div className="data-row">
+          <span>Volume</span>
+          <span className="value">
+            {data.volume_L !== undefined ? `${data.volume_L.toFixed(2)} L` : "รอ Sensor"}
+          </span>
+        </div>
+
+        {activeTank === "FishTank" && (
+          <div className="data-row">
+            <span>Turbidity</span>
+            <span className="value">
+              {data.turbidity !== undefined ? `${data.turbidity}` : "รอ Sensor"}
+            </span>
+          </div>
+        )}
+
+        <div className="timestamp">
+          {data.timestamp ? data.timestamp : "No data yet"}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="app-container">
       {/* Sidebar */}
-      <div className={`sidebar ${sidebarOpen ? "open" : "collapsed"}`}>
+      <div className="sidebar open">
         <div className="sidebar-header">
-          <h2 className="logo">{sidebarOpen && "🌿 Aquaponic"}</h2>
-          <button
-            className="toggle-btn"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            ☰
-          </button>
+          <div className="logo">Aquaponic</div>
         </div>
-        <p className="timestamp">{timestamp}</p>
         <ul>
           <li
-            className={activeTab === "fish" ? "active" : ""}
-            onClick={() => setActiveTab("fish")}
+            className={activeTank === "FishTank" ? "active" : ""}
+            onClick={() => setActiveTank("FishTank")}
           >
-            🐟 {sidebarOpen && "Fish Tank"}
+            🐟 <span>Fish Tank</span>
           </li>
           <li
-            className={activeTab === "plant" ? "active" : ""}
-            onClick={() => setActiveTab("plant")}
+            className={activeTank === "PlantTank" ? "active" : ""}
+            onClick={() => setActiveTank("PlantTank")}
           >
-            🌱 {sidebarOpen && "Plant Tank"}
+            🌿 <span>Plant Tank</span>
           </li>
           <li
-            className={activeTab === "middle" ? "active" : ""}
-            onClick={() => setActiveTab("middle")}
+            className={activeTank === "MiddleTank" ? "active" : ""}
+            onClick={() => setActiveTank("MiddleTank")}
           >
-            💧 {sidebarOpen && "Middle Tank"}
+            💧 <span>Middle Tank</span>
           </li>
         </ul>
       </div>
@@ -169,63 +217,16 @@ function App() {
       {/* Main Content */}
       <div className="main-content">
         <div className="header">
-          <h1 className="title">Aquaponic Dashboard</h1>
+          <h1 className="title">Aquaponic Monitoring</h1>
         </div>
-
-        <div className="dashboard">
-          {/* Fish Tank */}
-          {activeTab === "fish" && (
-            <div className="card fish">
-              <h2>Fish Tank</h2>
-              <div className="image fish-img" />
-              <div className="data-row">
-                <span>pH</span>
-                <span>{data.FishTank?.ph ?? "--"}</span>
-              </div>
-              <div className="data-row">
-                <span>Water Level</span>
-                <span>{data.FishTank?.waterLevel ?? "--"} mL</span>
-              </div>
-              <div className="data-row">
-                <span>Turbidity</span>
-                <span>{data.FishTank?.turbidity ?? "--"} %</span>
-              </div>
-            </div>
-          )}
-
-          {/* Plant Tank */}
-          {activeTab === "plant" && (
-            <div className="card plant">
-              <h2>Plant Tank</h2>
-              <div className="image plant-img" />
-              <div className="data-row">
-                <span>pH</span>
-                <span>{data.PlantTank?.ph ?? "--"}</span>
-              </div>
-              <div className="data-row">
-                <span>Water Level</span>
-                <span>{data.PlantTank?.waterLevel ?? "--"} mL</span>
-              </div>
-            </div>
-          )}
-
-          {/* Middle Tank */}
-          {activeTab === "middle" && (
-            <div className="card middle">
-              <h2>Middle Tank</h2>
-              <div className="image middle-img" />
-              <div className="data-row">
-                <span>Water Level</span>
-                <span>{data.MiddleTank?.waterLevel ?? "--"} mL</span>
-              </div>
-            </div>
-          )}
-        </div>
+        {renderTank()}
       </div>
     </div>
   );
 }
 
 export default App;
+
+
 
 
