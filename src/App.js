@@ -2,7 +2,81 @@
 
 
 
+// import React, { useEffect, useState } from "react";
+// import { database, ref, onValue } from "./firebaseConfig";
+// import "./App.css";
 
+// function App() {
+//   const [fishData, setFishData] = useState({});
+//   const [middleData, setMiddleData] = useState({});
+//   const [plantData, setPlantData] = useState({});
+//   const [timestamp, setTimestamp] = useState("");
+
+//   useEffect(() => {
+//     const uid = "UsersData"; // root ที่เรามีจริง
+//     const fishRef = ref(database, `${uid}/FishTank`);
+//     const middleRef = ref(database, `${uid}/MiddleTank`);
+//     const plantRef = ref(database, `${uid}/PlantTank`);
+
+//     // Fish Tank
+//     onValue(fishRef, (snapshot) => {
+//       const data = snapshot.val();
+//       if (data) {
+//         setFishData(data);
+//         setTimestamp(data.timestamp || "");
+//       }
+//     });
+
+//     // Middle Tank
+//     onValue(middleRef, (snapshot) => {
+//       const data = snapshot.val();
+//       if (data) setMiddleData(data);
+//     });
+
+//     // Plant Tank
+//     onValue(plantRef, (snapshot) => {
+//       const data = snapshot.val();
+//       if (data) setPlantData(data);
+//     });
+//   }, []);
+
+//   return (
+//     <div className="app-container">
+//       <div className="header">
+//         <h1 className="title">Aquaponic Test 01</h1>
+//         <p className="timestamp">{timestamp}</p>
+//       </div>
+
+//       <div className="dashboard">
+//         {/* Fish Tank */}
+//         <div className="card fish">
+//           <h2>Fish Tank</h2>
+//           <div className="image fish-img" />
+//           <div className="data-row"><span>pH</span><span>{fishData.ph ?? "--"}</span></div>
+//           <div className="data-row"><span>Water Level</span><span>{fishData.waterLevel ?? "--"} mL</span></div>
+//           <div className="data-row"><span>Turbidity</span><span>{fishData.turbidity ?? "--"} %</span></div>
+//         </div>
+
+//         {/* Middle Tank */}
+//         <div className="card middle">
+//           <h2>Middle Tank</h2>
+//           <div className="image middle-img" />
+//           <div className="data-row"><span>Water Level</span><span>{middleData.waterLevel ?? "--"} mL</span></div>
+//         </div>
+
+//         {/* Plant Tank */}
+//         <div className="card plant">
+//           <h2>Plant Tank</h2>
+//           <div className="image plant-img" />
+//           <div className="data-row"><span>pH</span><span>{plantData.ph ?? "--"}</span></div>
+//           <div className="data-row"><span>Water Level</span><span>{plantData.waterLevel ?? "--"} mL</span></div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default App;
 
 
 
@@ -14,32 +88,46 @@ import { database, ref, onValue } from "./firebaseConfig";
 import "./App.css";
 
 function App() {
-  const [data, setData] = useState({});
+  const [data, setData] = useState({
+    FishTank: {},
+    PlantTank: {},
+    MiddleTank: {}
+  });
   const [timestamp, setTimestamp] = useState("");
   const [activeTab, setActiveTab] = useState("fish");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    const uid = "JPiKLeK1WzTM1dlObvnAog6NP6k2";
-    const dataRef = ref(database, `UsersData/${uid}`);
-
-    const unsubscribe = onValue(dataRef, (snapshot) => {
+    // FishTank
+    const fishRef = ref(database, "UsersData/FishTank");
+    const unsubFish = onValue(fishRef, (snapshot) => {
       const val = snapshot.val();
-      if (val) {
-        setData(val);
+      setData((prev) => ({ ...prev, FishTank: val || {} }));
 
-        if (val.timestamp) {
-          const currentDate = new Date();
-          const [hours, minutes, seconds] = val.timestamp.split(":");
-          currentDate.setHours(hours);
-          currentDate.setMinutes(minutes);
-          currentDate.setSeconds(seconds);
-          setTimestamp(currentDate.toLocaleString());
-        }
+      if (val?.timestamp) {
+        setTimestamp(val.timestamp);
       }
     });
 
-    return () => unsubscribe();
+    // PlantTank
+    const plantRef = ref(database, "UsersData/PlantTank");
+    const unsubPlant = onValue(plantRef, (snapshot) => {
+      const val = snapshot.val();
+      setData((prev) => ({ ...prev, PlantTank: val || {} }));
+    });
+
+    // MiddleTank
+    const middleRef = ref(database, "UsersData/MiddleTank");
+    const unsubMiddle = onValue(middleRef, (snapshot) => {
+      const val = snapshot.val();
+      setData((prev) => ({ ...prev, MiddleTank: val || {} }));
+    });
+
+    return () => {
+      unsubFish();
+      unsubPlant();
+      unsubMiddle();
+    };
   }, []);
 
   return (
@@ -47,7 +135,7 @@ function App() {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? "open" : "collapsed"}`}>
         <div className="sidebar-header">
-          <h2 className="logo">🌿 {sidebarOpen && "Aquaponic"}</h2>
+          <h2 className="logo">{sidebarOpen && "🌿 Aquaponic"}</h2>
           <button
             className="toggle-btn"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -67,7 +155,7 @@ function App() {
             className={activeTab === "plant" ? "active" : ""}
             onClick={() => setActiveTab("plant")}
           >
-            🌱 {sidebarOpen && "Plant Bed"}
+            🌱 {sidebarOpen && "Plant Tank"}
           </li>
           <li
             className={activeTab === "middle" ? "active" : ""}
@@ -85,6 +173,7 @@ function App() {
         </div>
 
         <div className="dashboard">
+          {/* Fish Tank */}
           {activeTab === "fish" && (
             <div className="card fish">
               <h2>Fish Tank</h2>
@@ -95,37 +184,39 @@ function App() {
               </div>
               <div className="data-row">
                 <span>Water Level</span>
-                <span>{data.FishTank?.level ?? "--"} cm</span>
+                <span>{data.FishTank?.waterLevel ?? "--"} mL</span>
               </div>
               <div className="data-row">
                 <span>Turbidity</span>
-                <span>{data.FishTank?.turbidity ?? "--"} NTU</span>
+                <span>{data.FishTank?.turbidity ?? "--"} %</span>
               </div>
             </div>
           )}
 
+          {/* Plant Tank */}
           {activeTab === "plant" && (
             <div className="card plant">
-              <h2>Plant Bed</h2>
+              <h2>Plant Tank</h2>
               <div className="image plant-img" />
               <div className="data-row">
                 <span>pH</span>
-                <span>{data.PlantBed?.ph ?? "--"}</span>
+                <span>{data.PlantTank?.ph ?? "--"}</span>
               </div>
               <div className="data-row">
                 <span>Water Level</span>
-                <span>{data.PlantBed?.level ?? "--"} cm</span>
+                <span>{data.PlantTank?.waterLevel ?? "--"} mL</span>
               </div>
             </div>
           )}
 
+          {/* Middle Tank */}
           {activeTab === "middle" && (
             <div className="card middle">
               <h2>Middle Tank</h2>
               <div className="image middle-img" />
               <div className="data-row">
                 <span>Water Level</span>
-                <span>{data.MiddleTank?.level ?? "--"} cm</span>
+                <span>{data.MiddleTank?.waterLevel ?? "--"} mL</span>
               </div>
             </div>
           )}
@@ -136,10 +227,5 @@ function App() {
 }
 
 export default App;
-
-
-
-
-
 
 
